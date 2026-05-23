@@ -86,36 +86,8 @@ void loop() {
     digitalWrite(LED1pin, LOW);
   }
 
-  /////////////////////I2C//////////////////////////////////////
-/*
-  delay(1000);
-  uint8_t sensor = 'S';
-  Wire.beginTransmission(I2CSlaveAddress1);
-  Wire.write(sensor);
-  Serial.println(sensor);
+  
 
-  error = Wire.endTransmission(true);
-  Serial.print(" endTransmission: ");
-  Serial.println(error);
-  //Leer desde el esclavo
-  uint8_t bytesReceived = Wire.requestFrom(I2CSlaveAddress1, 4);
-
-  Serial.print("requestFrom:");
-  Serial.println(bytesReceived);
-
-  if(bytesReceived > 0){
-    uint8_t temp[10]; //buffer
-    for(int i = 0; i<bytesReceived; i++){
-      temp[i] = Wire.read();
-      Serial.print("Byte: ");
-      Serial.print(i);
-      Serial.print(" : ");
-      Serial.println(temp[i]);
-
-    }
-  }else{
-    Serial.println("No data Received");
-  }*/
 }
 
 void i2cScanner(){
@@ -181,7 +153,7 @@ void handle_led1off(){
 
 void leerSensoresI2C() {
 
-  // Enviar comando
+  // Pedir datos a STM sensores
   Wire.beginTransmission(0x18);
   Wire.write('S');
   Wire.endTransmission();
@@ -190,15 +162,21 @@ void leerSensoresI2C() {
   Wire.requestFrom(0x18, 1);
 
   if (Wire.available()) {
-    uint8_t data = Wire.read();
+
+    estadoByte = Wire.read();
 
     Serial.print("Sensores: ");
-    Serial.println(data, BIN);
+    Serial.println(estadoByte, BIN);
 
-    // Separar bits
+    // Actualizar estados web
     for (int i = 0; i < 8; i++) {
-      p[i] = (data >> i) & 1;
+      p[i] = (estadoByte >> i) & 1;
     }
+
+    // Enviar a STM pantalla
+    Wire.beginTransmission(0x20);
+    Wire.write(estadoByte);
+    Wire.endTransmission();
 
   } else {
     Serial.println("No data");
@@ -211,6 +189,7 @@ String SendHTML(uint8_t LED1stat) {
   String str = "<!DOCTYPE html><html lang='es'>";
   str += "<head><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   
+  
   str += "<style>";
   str += "body {font-family: Arial; text-align: center; background-color: #f4f4f4;}";
   str += ".contenedor {display: flex; justify-content: center; margin-top: 40px; gap: 100px;}";
@@ -222,11 +201,14 @@ String SendHTML(uint8_t LED1stat) {
   str += ".on {background-color: green; color: white;}";
   str += ".off {background-color: red; color: white;}";
   str += "</style>";
+  str += "<script>";
 
+  str += "setTimeout(function(){ location.reload(); }, 1000);";
+  str += "</script>";
   str += "</head><body>";
 
   // 🔷 Título
-  str += "<h1>Parqueo Inteligente</h1>";
+  str += "<h1>PARQUEO</h1>";
 
   // 🔷 Estado del LED
   if (LED1stat)
